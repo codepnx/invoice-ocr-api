@@ -1,0 +1,94 @@
+# Prompt Templates for Invoice/Receipt Processing
+
+default_invoice:
+  name: "Invoice Extraction"
+  description: "Extract standard invoice/receipt fields"
+  system_prompt: |
+    You are an expert at analyzing invoices and receipts.
+    Extract information accurately and return valid JSON only.
+    If a field is not found, use null as the value.
+
+  user_prompt: |
+    Analyze this invoice/receipt image and extract the following information:
+
+    Required fields:
+    - invoice_number: The invoice or receipt number
+    - invoice_date: The date of the invoice/receipt (format: YYYY-MM-DD)
+    - payment_date: The date payment was made (format: YYYY-MM-DD), if available
+    - service_date: The date when services were performed (format: YYYY-MM-DD), if available
+    - service_provider: The name of the company/person providing the service
+    - buyer: The name of the buyer/customer (if not specified, try to identify from the document)
+    - amount: The total amount paid (numeric value only)
+    - currency: The currency code (e.g., USD, EUR, GBP)
+    - description: Brief description of services/products
+    - payment_method: Method of payment if mentioned (e.g., cash, card, wire transfer)
+
+    {buyer_context}
+
+    Return ONLY a valid JSON object with these fields. Do not include any other text or markdown formatting.
+    Example format:
+    {{
+      "invoice_number": "INV-2024-001",
+      "invoice_date": "2024-01-15",
+      "payment_date": "2024-01-20",
+      "service_date": "2024-01-10",
+      "service_provider": "ABC Services Inc.",
+      "buyer": "XYZ Company",
+      "amount": 1500.00,
+      "currency": "USD",
+      "description": "Consulting services",
+      "payment_method": "wire transfer"
+    }}
+
+detailed_invoice:
+  name: "Detailed Invoice Extraction"
+  description: "Extract detailed invoice fields including line items"
+  system_prompt: |
+    You are an expert at analyzing invoices and receipts with attention to detail.
+    Extract all information accurately and return valid JSON only.
+    If a field is not found, use null as the value.
+
+  user_prompt: |
+    Analyze this invoice/receipt image and extract the following information:
+
+    Required fields:
+    - invoice_number: The invoice or receipt number
+    - invoice_date: The date of the invoice/receipt (format: YYYY-MM-DD)
+    - due_date: The payment due date (format: YYYY-MM-DD), if available
+    - payment_date: The date payment was made (format: YYYY-MM-DD), if available
+    - service_date: The date when services were performed (format: YYYY-MM-DD), if available
+    - service_provider: Object with name, address, tax_id, contact details
+    - buyer: Object with name, address, contact details (if not specified in context, extract from document)
+    - line_items: Array of items/services with description, quantity, unit_price, total
+    - subtotal: Subtotal amount before taxes
+    - tax_amount: Tax amount
+    - tax_rate: Tax rate percentage
+    - total_amount: The total amount including taxes
+    - currency: The currency code (e.g., USD, EUR, GBP)
+    - payment_method: Method of payment if mentioned
+    - notes: Any additional notes or terms
+
+    {buyer_context}
+
+    Return ONLY a valid JSON object. Do not include any markdown formatting or extra text.
+
+simple_receipt:
+  name: "Simple Receipt Extraction"
+  description: "Extract basic receipt information"
+  system_prompt: |
+    You are an expert at analyzing receipts.
+    Extract information accurately and return valid JSON only.
+
+  user_prompt: |
+    Analyze this receipt image and extract:
+
+    - receipt_number: Receipt number or transaction ID
+    - date: Date of purchase (format: YYYY-MM-DD)
+    - merchant: Name of the merchant/store
+    - amount: Total amount
+    - currency: Currency code
+    - items: Brief description of purchased items
+
+    {buyer_context}
+
+    Return ONLY a valid JSON object with these fields.

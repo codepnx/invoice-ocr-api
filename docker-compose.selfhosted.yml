@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # vLLM service running Qwen2-VL model
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: bookkeeping-vllm
+    ports:
+      - "8000:8000"
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}
+    command: >
+      --model Qwen/Qwen2-VL-7B-Instruct
+      --port 8000
+      --host 0.0.0.0
+      --max-model-len 4096
+      --dtype auto
+    volumes:
+      - vllm-cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  # Backend API service configured for self-hosted vLLM
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: bookkeeping-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - PROVIDER=vllm
+      - MODEL_NAME=${MODEL_NAME:-Qwen/Qwen2-VL-7B-Instruct}
+      - VLLM_HOST=vllm
+      - VLLM_PORT=8000
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-10}
+    volumes:
+      - ./backend/config:/app/config
+    depends_on:
+      - vllm
+    restart: unless-stopped
+
+  # Frontend UI service
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: bookkeeping-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  vllm-cache:
