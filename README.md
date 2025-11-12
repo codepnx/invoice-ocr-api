@@ -247,7 +247,7 @@ Response:
     "amount": 1500.00,
     "currency": "USD",
     "description": "Consulting services",
-    "payment_method": "wire transfer"
+    "payment_method": "banktransfer"
   },
   "error": null,
   "raw_response": "{...}"

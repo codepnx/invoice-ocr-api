@@ -21,7 +21,7 @@ default_invoice:
     - amount: The total amount paid (numeric value only)
     - currency: The currency code (e.g., USD, EUR, GBP)
     - description: Brief description of services/products
-    - payment_method: Method of payment if mentioned (e.g., cash, card, wire transfer)
+    - payment_method: Method of payment - must be one of: "creditcard", "banktransfer", "cash", "other", or "N/A" if not mentioned or cannot be determined
 
     {buyer_context}
 
@@ -37,7 +37,7 @@ default_invoice:
       "amount": 1500.00,
       "currency": "USD",
       "description": "Consulting services",
-      "payment_method": "wire transfer"
+      "payment_method": "banktransfer"
     }}
 
 detailed_invoice:
@@ -65,7 +65,7 @@ detailed_invoice:
     - tax_rate: Tax rate percentage
     - total_amount: The total amount including taxes
     - currency: The currency code (e.g., USD, EUR, GBP)
-    - payment_method: Method of payment if mentioned
+    - payment_method: Method of payment - must be one of: "creditcard", "banktransfer", "cash", "other", or "N/A" if not mentioned or cannot be determined
     - notes: Any additional notes or terms
 
     {buyer_context}
@@ -88,6 +88,7 @@ simple_receipt:
     - amount: Total amount
     - currency: Currency code
     - items: Brief description of purchased items
+    - payment_method: Method of payment - must be one of: "creditcard", "banktransfer", "cash", "other", or "N/A" if not mentioned or cannot be determined
 
     {buyer_context}
 
