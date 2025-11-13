@@ -129,11 +129,13 @@ detailed_invoice:
     - service_date: The date when services were performed (format: YYYY-MM-DD), if available
     - service_provider: Object with name, address, tax_id, contact details
     - buyer: Object with name, address, contact details (if not specified in context, extract from document)
-    - line_items: Array of items/services with description, quantity, unit_price, total
-    - subtotal: Subtotal amount before taxes
+    - line_items: Array of items/services with description, quantity, unit_price (net price per unit WITHOUT VAT/TAX), total (net total for this line WITHOUT VAT/TAX), tax_rate (tax rate percentage for this line item, if specified on the invoice)
+    - subtotal: Subtotal amount before taxes (sum of all line item totals)
     - tax_amount: Tax amount
-    - tax_rate: Tax rate percentage
-    - total_amount: The total amount including taxes
+    - tax_rate: Overall tax rate percentage (if uniform across all items)
+    - total_amount: The total amount including taxes (subtotal + tax_amount)
+
+    IMPORTANT: Each line item should have its tax_rate if specified on the invoice. Some invoices have different tax rates for different items (e.g., 20% for services, 0% for exports).
     - currency: The currency code (e.g., USD, EUR, GBP)
     - payment_method: Method of payment - must be one of: "creditcard", "banktransfer", "cash", "other", or "N/A" if not mentioned or cannot be determined
     - paymentBankAccountNumber: (ONLY if payment_method is "banktransfer") The bank account number where payment should be sent
@@ -198,6 +200,76 @@ detailed_invoice:
     ❌ WRONG - Don't include labels in the reference:
     {{
       "paymentReference": "Payment Communication: INV/2025/01579"  // WRONG! Remove label
+    }}
+
+    Example with line items (IMPORTANT - unit_price and total are NET amounts WITHOUT VAT):
+    {{
+      "invoice_number": "INV-2025-001",
+      "invoice_date": "2025-01-15",
+      "service_provider": {{
+        "name": "ABC Consulting Ltd",
+        "address": "123 Business St, New York, NY 10001",
+        "tax_id": "12-3456789"
+      }},
+      "buyer": {{
+        "name": "XYZ Corporation",
+        "address": "456 Commerce Ave, Boston, MA 02101"
+      }},
+      "line_items": [
+        {{
+          "description": "Consulting services - January",
+          "quantity": 40,
+          "unit_price": 100.00,
+          "total": 4000.00,
+          "tax_rate": 20.0
+        }},
+        {{
+          "description": "Software license",
+          "quantity": 1,
+          "unit_price": 500.00,
+          "total": 500.00,
+          "tax_rate": 20.0
+        }}
+      ],
+      "subtotal": 4500.00,
+      "tax_rate": 20.0,
+      "tax_amount": 900.00,
+      "total_amount": 5400.00,
+      "currency": "USD",
+      "payment_method": "banktransfer"
+    }}
+
+    Example with different tax rates per line item:
+    {{
+      "invoice_number": "INV-2025-002",
+      "invoice_date": "2025-01-20",
+      "line_items": [
+        {{
+          "description": "Consulting services (Standard rate)",
+          "quantity": 10,
+          "unit_price": 150.00,
+          "total": 1500.00,
+          "tax_rate": 20.0
+        }},
+        {{
+          "description": "Books (Reduced rate)",
+          "quantity": 5,
+          "unit_price": 25.00,
+          "total": 125.00,
+          "tax_rate": 5.0
+        }},
+        {{
+          "description": "Export service (Zero rate)",
+          "quantity": 1,
+          "unit_price": 500.00,
+          "total": 500.00,
+          "tax_rate": 0.0
+        }}
+      ],
+      "subtotal": 2125.00,
+      "tax_amount": 306.25,
+      "total_amount": 2431.25,
+      "currency": "EUR"
     }}
 
 simple_receipt:
