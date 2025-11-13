@@ -22,6 +22,8 @@ default_invoice:
     - currency: The currency code (e.g., USD, EUR, GBP)
     - description: Brief description of services/products
     - payment_method: Method of payment - must be one of: "creditcard", "banktransfer", "cash", "other", or "N/A" if not mentioned or cannot be determined
+    - paymentBankAccountNumber: (ONLY if payment_method is "banktransfer") The bank account number where payment should be sent
+    - paymentReference: (ONLY if payment_method is "banktransfer") The payment reference or note to include with the bank transfer
 
     {buyer_context}
 
@@ -37,7 +39,9 @@ default_invoice:
       "amount": 1500.00,
       "currency": "USD",
       "description": "Consulting services",
-      "payment_method": "banktransfer"
+      "payment_method": "banktransfer",
+      "paymentBankAccountNumber": "DE89370400440532013000",
+      "paymentReference": "INV-2024-001"
     }}
 
 detailed_invoice:
@@ -66,6 +70,8 @@ detailed_invoice:
     - total_amount: The total amount including taxes
     - currency: The currency code (e.g., USD, EUR, GBP)
     - payment_method: Method of payment - must be one of: "creditcard", "banktransfer", "cash", "other", or "N/A" if not mentioned or cannot be determined
+    - paymentBankAccountNumber: (ONLY if payment_method is "banktransfer") The bank account number where payment should be sent
+    - paymentReference: (ONLY if payment_method is "banktransfer") The payment reference or note to include with the bank transfer
     - notes: Any additional notes or terms
 
     {buyer_context}
@@ -89,6 +95,8 @@ simple_receipt:
     - currency: Currency code
     - items: Brief description of purchased items
     - payment_method: Method of payment - must be one of: "creditcard", "banktransfer", "cash", "other", or "N/A" if not mentioned or cannot be determined
+    - paymentBankAccountNumber: (ONLY if payment_method is "banktransfer") The bank account number where payment should be sent
+    - paymentReference: (ONLY if payment_method is "banktransfer") The payment reference or note to include with the bank transfer
 
     {buyer_context}
 
