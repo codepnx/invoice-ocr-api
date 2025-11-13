@@ -28,7 +28,73 @@ default_invoice:
     {buyer_context}
 
     Return ONLY a valid JSON object with these fields. Do not include any other text or markdown formatting.
-    Example format:
+
+    IMPORTANT RULES for payment_method "banktransfer":
+    1. paymentBankAccountNumber: Extract the account number and REMOVE all spaces, dashes, and special characters. Keep only letters and numbers.
+    2. paymentReference: Extract the exact reference text that should be used in the bank transfer. Look for labels like "Payment Communication:", "Reference:", "Payment Reference:", "Structured Communication:", etc.
+
+    POSITIVE EXAMPLES (correct extraction):
+
+    Example 1 - Basic bank transfer:
+    Input text: "Payment Communication: INV/2025/01579 on this account: BE07 9050 4713 8266 - Wise EUR"
+    Correct output:
+    {{
+      "payment_method": "banktransfer",
+      "paymentBankAccountNumber": "BE07905047138266",
+      "paymentReference": "INV/2025/01579"
+    }}
+
+    Example 2 - Structured reference:
+    Input text: "Please transfer to IBAN: DE89 3704 0044 0532 0130 00 with reference: Invoice-2024-ABC-123"
+    Correct output:
+    {{
+      "payment_method": "banktransfer",
+      "paymentBankAccountNumber": "DE89370400440532013000",
+      "paymentReference": "Invoice-2024-ABC-123"
+    }}
+
+    Example 3 - Payment reference with special format:
+    Input text: "Account: GB29 NWBK 6016 1331 9268 19, Payment note: REF-2025/Q1/789"
+    Correct output:
+    {{
+      "payment_method": "banktransfer",
+      "paymentBankAccountNumber": "GB29NWBK60161331926819",
+      "paymentReference": "REF-2025/Q1/789"
+    }}
+
+    Example 4 - Multiple reference formats:
+    Input text: "Structured communication: +++123/4567/89012+++ Bank: BE71 0961 2345 6769"
+    Correct output:
+    {{
+      "payment_method": "banktransfer",
+      "paymentBankAccountNumber": "BE71096123456769",
+      "paymentReference": "+++123/4567/89012+++"
+    }}
+
+    NEGATIVE EXAMPLES (what NOT to do):
+
+    ❌ WRONG - Don't keep spaces in account numbers:
+    {{
+      "paymentBankAccountNumber": "BE07 9050 4713 8266"  // WRONG! Remove spaces
+    }}
+
+    ❌ WRONG - Don't use invoice number as payment reference unless explicitly stated:
+    {{
+      "invoice_number": "INV-2024-001",
+      "paymentReference": "INV-2024-001"  // WRONG if document says "Use payment ref: ORDER-123"
+    }}
+
+    ❌ WRONG - Don't extract bank name as part of account number:
+    {{
+      "paymentBankAccountNumber": "BE07905047138266-Wise"  // WRONG! Remove bank name
+    }}
+
+    ❌ WRONG - Don't include labels in the reference:
+    {{
+      "paymentReference": "Payment Communication: INV/2025/01579"  // WRONG! Remove label
+    }}
+
+    Standard example format:
     {{
       "invoice_number": "INV-2024-001",
       "invoice_date": "2024-01-15",
@@ -78,6 +144,62 @@ detailed_invoice:
 
     Return ONLY a valid JSON object. Do not include any markdown formatting or extra text.
 
+    IMPORTANT RULES for payment_method "banktransfer":
+    1. paymentBankAccountNumber: Extract the account number and REMOVE all spaces, dashes, and special characters. Keep only letters and numbers.
+    2. paymentReference: Extract the exact reference text that should be used in the bank transfer. Look for labels like "Payment Communication:", "Reference:", "Payment Reference:", "Structured Communication:", etc.
+
+    POSITIVE EXAMPLES (correct extraction):
+
+    Example 1 - Basic bank transfer:
+    Input text: "Payment Communication: INV/2025/01579 on this account: BE07 9050 4713 8266 - Wise EUR"
+    Correct output:
+    {{
+      "payment_method": "banktransfer",
+      "paymentBankAccountNumber": "BE07905047138266",
+      "paymentReference": "INV/2025/01579"
+    }}
+
+    Example 2 - Structured reference:
+    Input text: "Please transfer to IBAN: DE89 3704 0044 0532 0130 00 with reference: Invoice-2024-ABC-123"
+    Correct output:
+    {{
+      "payment_method": "banktransfer",
+      "paymentBankAccountNumber": "DE89370400440532013000",
+      "paymentReference": "Invoice-2024-ABC-123"
+    }}
+
+    Example 3 - Payment reference with special format:
+    Input text: "Account: GB29 NWBK 6016 1331 9268 19, Payment note: REF-2025/Q1/789"
+    Correct output:
+    {{
+      "payment_method": "banktransfer",
+      "paymentBankAccountNumber": "GB29NWBK60161331926819",
+      "paymentReference": "REF-2025/Q1/789"
+    }}
+
+    NEGATIVE EXAMPLES (what NOT to do):
+
+    ❌ WRONG - Don't keep spaces in account numbers:
+    {{
+      "paymentBankAccountNumber": "BE07 9050 4713 8266"  // WRONG! Remove spaces
+    }}
+
+    ❌ WRONG - Don't use invoice number as payment reference unless explicitly stated:
+    {{
+      "invoice_number": "INV-2024-001",
+      "paymentReference": "INV-2024-001"  // WRONG if document says "Use payment ref: ORDER-123"
+    }}
+
+    ❌ WRONG - Don't extract bank name as part of account number:
+    {{
+      "paymentBankAccountNumber": "BE07905047138266-Wise"  // WRONG! Remove bank name
+    }}
+
+    ❌ WRONG - Don't include labels in the reference:
+    {{
+      "paymentReference": "Payment Communication: INV/2025/01579"  // WRONG! Remove label
+    }}
+
 simple_receipt:
   name: "Simple Receipt Extraction"
   description: "Extract basic receipt information"
@@ -101,3 +223,39 @@ simple_receipt:
     {buyer_context}
 
     Return ONLY a valid JSON object with these fields.
+
+    IMPORTANT RULES for payment_method "banktransfer":
+    1. paymentBankAccountNumber: Extract the account number and REMOVE all spaces, dashes, and special characters. Keep only letters and numbers.
+    2. paymentReference: Extract the exact reference text that should be used in the bank transfer. Look for labels like "Payment Communication:", "Reference:", "Payment Reference:", "Structured Communication:", etc.
+
+    POSITIVE EXAMPLES (correct extraction):
+
+    Example 1 - Basic bank transfer:
+    Input text: "Payment Communication: INV/2025/01579 on this account: BE07 9050 4713 8266 - Wise EUR"
+    Correct output:
+    {{
+      "payment_method": "banktransfer",
+      "paymentBankAccountNumber": "BE07905047138266",
+      "paymentReference": "INV/2025/01579"
+    }}
+
+    Example 2 - Structured reference:
+    Input text: "Please transfer to IBAN: DE89 3704 0044 0532 0130 00 with reference: Invoice-2024-ABC-123"
+    Correct output:
+    {{
+      "payment_method": "banktransfer",
+      "paymentBankAccountNumber": "DE89370400440532013000",
+      "paymentReference": "Invoice-2024-ABC-123"
+    }}
+
+    NEGATIVE EXAMPLES (what NOT to do):
+
+    ❌ WRONG - Don't keep spaces in account numbers:
+    {{
+      "paymentBankAccountNumber": "BE07 9050 4713 8266"  // WRONG! Remove spaces
+    }}
+
+    ❌ WRONG - Don't include labels in the reference:
+    {{
+      "paymentReference": "Payment Communication: INV/2025/01579"  // WRONG! Remove label
+    }}
