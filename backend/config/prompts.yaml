@@ -11,12 +11,14 @@ default_invoice:
   user_prompt: |
     Analyze this invoice/receipt image and extract the following information:
 
+    CRITICAL: ALL addresses MUST be complete with street, city, postal code, and country. Never return incomplete addresses like just "Budapest" or "Berlin".
+
     Required fields:
     - invoice_number: The invoice or receipt number
     - invoice_date: The date of the invoice/receipt (format: YYYY-MM-DD)
     - payment_date: The date payment was made (format: YYYY-MM-DD), if available
     - service_date: The date when services were performed (format: YYYY-MM-DD), if available
-    - service_provider: The name of the company/person providing the service
+    - service_provider: Object with name and complete address. For address, ALWAYS include ALL components: street number + street name, city, postal code, and country in single string format like "Sarló u 7, Székesfehérvár 8000, Hungary". NEVER use incomplete addresses like just "Budapest" or "Berlin".
     - buyer: The name of the buyer/customer (if not specified, try to identify from the document)
     - amount: The total amount paid (numeric value only)
     - currency: The currency code (e.g., USD, EUR, GBP)
@@ -73,25 +75,162 @@ default_invoice:
 
     NEGATIVE EXAMPLES (what NOT to do):
 
-    ❌ WRONG - Don't keep spaces in account numbers:
+    WRONG - Don't keep spaces in account numbers:
     {{
       "paymentBankAccountNumber": "BE07 9050 4713 8266"  // WRONG! Remove spaces
     }}
 
-    ❌ WRONG - Don't use invoice number as payment reference unless explicitly stated:
+    WRONG - Don't use invoice number as payment reference unless explicitly stated:
     {{
       "invoice_number": "INV-2024-001",
       "paymentReference": "INV-2024-001"  // WRONG if document says "Use payment ref: ORDER-123"
     }}
 
-    ❌ WRONG - Don't extract bank name as part of account number:
+    WRONG - Don't extract bank name as part of account number:
     {{
       "paymentBankAccountNumber": "BE07905047138266-Wise"  // WRONG! Remove bank name
     }}
 
-    ❌ WRONG - Don't include labels in the reference:
+    WRONG - Don't include labels in the reference:
     {{
       "paymentReference": "Payment Communication: INV/2025/01579"  // WRONG! Remove label
+    }}
+
+    POSITIVE ADDRESS EXAMPLES (CORRECT formats to follow):
+
+    CORRECT Hungarian address:
+    {{
+      "service_provider": {{
+        "name": "Tech Solutions Kft",
+        "address": "Sarló u 7, Székesfehérvár 8000, Hungary"
+      }}
+    }}
+
+    CORRECT US address:
+    {{
+      "service_provider": {{
+        "name": "ABC Services Inc.",
+        "address": "123 Business Street, New York, NY 10001, United States"
+      }}
+    }}
+
+    CORRECT German address:
+    {{
+      "service_provider": {{
+        "name": "Berlin Tech GmbH",
+        "address": "Unter den Linden 42, Berlin 10117, Germany"
+      }}
+    }}
+
+    CORRECT UK address:
+    {{
+      "service_provider": {{
+        "name": "London Consulting Ltd",
+        "address": "10 Downing Street, London SW1A 2AA, United Kingdom"
+      }}
+    }}
+
+    CORRECT French address:
+    {{
+      "service_provider": {{
+        "name": "Paris Solutions SARL",
+        "address": "15 Rue de Rivoli, Paris 75001, France"
+      }}
+    }}
+
+    CORRECT Austrian address:
+    {{
+      "service_provider": {{
+        "name": "Vienna Services GmbH",
+        "address": "Ringstraße 1, Wien 1010, Austria"
+      }}
+    }}
+
+    CORRECT Dutch address:
+    {{
+      "service_provider": {{
+        "name": "Amsterdam Tech BV",
+        "address": "Prinsengracht 263, Amsterdam 1016 GV, Netherlands"
+      }}
+    }}
+
+    CORRECT Spanish address:
+    {{
+      "service_provider": {{
+        "name": "Madrid Solutions SL",
+        "address": "Gran Vía 28, Madrid 28013, Spain"
+      }}
+    }}
+
+    CORRECT Italian address:
+    {{
+      "service_provider": {{
+        "name": "Roma Consulting SRL",
+        "address": "Via del Corso 45, Roma 00187, Italy"
+      }}
+    }}
+
+    NEGATIVE ADDRESS EXAMPLES (INCORRECT formats to AVOID):
+
+    WRONG - Too short/incomplete:
+    {{
+      "service_provider": {{
+        "name": "Company Name",
+        "address": "Budapest"  // WRONG! Missing street and postal code
+      }}
+    }}
+
+    WRONG - Missing country in address:
+    {{
+      "service_provider": {{
+        "name": "Company Name",
+        "address": "Main Street 123, Budapest 1051"  // WRONG! Missing country
+      }}
+    }}
+
+    WRONG - Missing commas in address:
+    {{
+      "service_provider": {{
+        "name": "Company Name",
+        "address": "Main Street 123 Budapest 1051"  // WRONG! No comma separation
+      }}
+    }}
+
+    WRONG - Placeholder text:
+    {{
+      "service_provider": {{
+        "name": "Company Name",
+        "address": "Address not available"  // WRONG! No placeholder text
+      }}
+    }}
+
+    WRONG - String format (should be object):
+    {{
+      "service_provider": "Just Company Name"  // WRONG! Must be object with name and address
+    }}
+
+    WRONG - Only company name without street:
+    {{
+      "service_provider": {{
+        "name": "ABC Company",
+        "address": "New York, United States"  // WRONG! Missing street address
+      }}
+    }}
+
+    WRONG - Incomplete European address:
+    {{
+      "service_provider": {{
+        "name": "Berlin GmbH",
+        "address": "Alexanderplatz, Berlin"  // WRONG! Missing street number and postal code
+      }}
+    }}
+
+    WRONG - No postal code:
+    {{
+      "service_provider": {{
+        "name": "Vienna Solutions",
+        "address": "Ringstraße 1, Wien, Austria"  // WRONG! Missing postal code
+      }}
     }}
 
     Standard example format:
@@ -100,7 +239,10 @@ default_invoice:
       "invoice_date": "2024-01-15",
       "payment_date": "2024-01-20",
       "service_date": "2024-01-10",
-      "service_provider": "ABC Services Inc.",
+      "service_provider": {{
+        "name": "ABC Services Inc.",
+        "address": "123 Business Street, New York, NY 10001, United States"
+      }},
       "buyer": "XYZ Company",
       "amount": 1500.00,
       "currency": "USD",
@@ -121,13 +263,15 @@ detailed_invoice:
   user_prompt: |
     Analyze this invoice/receipt image and extract the following information:
 
+    CRITICAL: ALL addresses MUST be complete with street, city, postal code, and country. Never return incomplete addresses like just "Budapest" or "Berlin".
+
     Required fields:
     - invoice_number: The invoice or receipt number
     - invoice_date: The date of the invoice/receipt (format: YYYY-MM-DD)
     - due_date: The payment due date (format: YYYY-MM-DD), if available
     - payment_date: The date payment was made (format: YYYY-MM-DD), if available
     - service_date: The date when services were performed (format: YYYY-MM-DD), if available
-    - service_provider: Object with name, address, tax_id, contact details
+    - service_provider: Object with name, address (ALWAYS include street number + street name, city, postal code, and country in single string format like "Sarló u 7, Székesfehérvár 8000, Hungary"), tax_id, contact details
     - buyer: Object with name, address, contact details (if not specified in context, extract from document)
     - line_items: Array of items/services with description, quantity, unit_price (net price per unit WITHOUT VAT/TAX), total (net total for this line WITHOUT VAT/TAX), tax_rate (tax rate percentage for this line item, if specified on the invoice)
     - subtotal: Subtotal amount before taxes (sum of all line item totals)
@@ -181,25 +325,129 @@ detailed_invoice:
 
     NEGATIVE EXAMPLES (what NOT to do):
 
-    ❌ WRONG - Don't keep spaces in account numbers:
+    WRONG - Don't keep spaces in account numbers:
     {{
       "paymentBankAccountNumber": "BE07 9050 4713 8266"  // WRONG! Remove spaces
     }}
 
-    ❌ WRONG - Don't use invoice number as payment reference unless explicitly stated:
+    WRONG - Don't use invoice number as payment reference unless explicitly stated:
     {{
       "invoice_number": "INV-2024-001",
       "paymentReference": "INV-2024-001"  // WRONG if document says "Use payment ref: ORDER-123"
     }}
 
-    ❌ WRONG - Don't extract bank name as part of account number:
+    WRONG - Don't extract bank name as part of account number:
     {{
       "paymentBankAccountNumber": "BE07905047138266-Wise"  // WRONG! Remove bank name
     }}
 
-    ❌ WRONG - Don't include labels in the reference:
+    WRONG - Don't include labels in the reference:
     {{
       "paymentReference": "Payment Communication: INV/2025/01579"  // WRONG! Remove label
+    }}
+
+    POSITIVE ADDRESS EXAMPLES for service_provider and buyer (CORRECT formats):
+
+    CORRECT Hungarian business address:
+    {{
+      "service_provider": {{
+        "name": "Magyar Consulting Kft",
+        "address": "Váci út 1-3, Budapest 1052, Hungary",
+        "tax_id": "12345678-2-41"
+      }}
+    }}
+
+    CORRECT German business address:
+    {{
+      "service_provider": {{
+        "name": "Deutsche Solutions GmbH",
+        "address": "Alexanderplatz 1, Berlin 10178, Germany",
+        "tax_id": "DE123456789"
+      }}
+    }}
+
+    CORRECT Swiss business address:
+    {{
+      "service_provider": {{
+        "name": "Zurich Services AG",
+        "address": "Bahnhofstrasse 45, Zürich 8001, Switzerland",
+        "tax_id": "CHE-123.456.789"
+      }}
+    }}
+
+    CORRECT US business address:
+    {{
+      "service_provider": {{
+        "name": "Silicon Valley Tech Inc.",
+        "address": "1600 Amphitheatre Parkway, Mountain View, CA 94043, United States",
+        "tax_id": "12-3456789"
+      }}
+    }}
+
+    CORRECT buyer address format:
+    {{
+      "buyer": {{
+        "name": "International Corp Ltd",
+        "address": "Tower Bridge Road 15, London SE1 2UP, United Kingdom"
+      }}
+    }}
+
+    NEGATIVE ADDRESS EXAMPLES (INCORRECT formats to AVOID):
+
+    WRONG - Too short/incomplete service provider:
+    {{
+      "service_provider": {{
+        "name": "Company Name",
+        "address": "Berlin"  // WRONG! Missing street, postal code
+      }}
+    }}
+
+    WRONG - Missing commas in address:
+    {{
+      "service_provider": {{
+        "name": "Company Name",
+        "address": "Main Street 123 Berlin 10117 Germany"  // WRONG! No commas
+      }}
+    }}
+
+    WRONG - Incomplete buyer address:
+    {{
+      "buyer": {{
+        "name": "Customer Name",
+        "address": "New York"  // WRONG! Missing street and postal code
+      }}
+    }}
+
+    WRONG - Using placeholder text:
+    {{
+      "service_provider": {{
+        "name": "Company Name",
+        "address": "Address not provided"  // WRONG! Extract actual address
+      }}
+    }}
+
+    WRONG - Only city and country:
+    {{
+      "service_provider": {{
+        "name": "Swiss Corp",
+        "address": "Zurich, Switzerland"  // WRONG! Missing street and postal code
+      }}
+    }}
+
+    WRONG - Street without postal code:
+    {{
+      "buyer": {{
+        "name": "Client Ltd",
+        "address": "Main Street 45, London, United Kingdom"  // WRONG! Missing postal code
+      }}
+    }}
+
+    WRONG - Mixed language addresses:
+    {{
+      "service_provider": {{
+        "name": "Company",
+        "address": "Hauptstraße 12, Budapest, Hungary"  // WRONG! Use consistent language for country
+      }}
     }}
 
     Example with line items (IMPORTANT - unit_price and total are NET amounts WITHOUT VAT):
@@ -208,7 +456,7 @@ detailed_invoice:
       "invoice_date": "2025-01-15",
       "service_provider": {{
         "name": "ABC Consulting Ltd",
-        "address": "123 Business St, New York, NY 10001",
+        "address": "123 Business Street, New York, NY 10001, United States",
         "tax_id": "12-3456789"
       }},
       "buyer": {{
@@ -282,9 +530,11 @@ simple_receipt:
   user_prompt: |
     Analyze this receipt image and extract:
 
+    CRITICAL: ALL addresses MUST be complete with street, city, postal code, and country. Never return incomplete addresses like just "Budapest" or store name only.
+
     - receipt_number: Receipt number or transaction ID
     - date: Date of purchase (format: YYYY-MM-DD)
-    - merchant: Name of the merchant/store
+    - service_provider: Object with name and complete address. For address, ALWAYS include ALL components: street number + street name, city, postal code, and country in single string format like "Sarló u 7, Székesfehérvár 8000, Hungary". NEVER use incomplete addresses like just "Budapest" or store name only.
     - amount: Total amount
     - currency: Currency code
     - items: Brief description of purchased items
@@ -322,12 +572,157 @@ simple_receipt:
 
     NEGATIVE EXAMPLES (what NOT to do):
 
-    ❌ WRONG - Don't keep spaces in account numbers:
+    WRONG - Don't keep spaces in account numbers:
     {{
       "paymentBankAccountNumber": "BE07 9050 4713 8266"  // WRONG! Remove spaces
     }}
 
-    ❌ WRONG - Don't include labels in the reference:
+    WRONG - Don't include labels in the reference:
     {{
       "paymentReference": "Payment Communication: INV/2025/01579"  // WRONG! Remove label
+    }}
+
+    POSITIVE SERVICE PROVIDER ADDRESS EXAMPLES (CORRECT formats for receipts):
+
+    CORRECT Hungarian store address:
+    {{
+      "service_provider": {{
+        "name": "Tesco Áruház",
+        "address": "Váci út 178, Budapest 1138, Hungary"
+      }}
+    }}
+
+    CORRECT German restaurant address:
+    {{
+      "service_provider": {{
+        "name": "Café Berlin",
+        "address": "Friedrichstraße 12, Berlin 10117, Germany"
+      }}
+    }}
+
+    CORRECT US retail store address:
+    {{
+      "service_provider": {{
+        "name": "Best Buy Store #1234",
+        "address": "123 Main Street, Chicago, IL 60601, United States"
+      }}
+    }}
+
+    CORRECT UK supermarket address:
+    {{
+      "service_provider": {{
+        "name": "Sainsbury's Local",
+        "address": "45 High Street, London SW1A 1AA, United Kingdom"
+      }}
+    }}
+
+    CORRECT French bakery address:
+    {{
+      "service_provider": {{
+        "name": "Boulangerie du Coin",
+        "address": "25 Rue de la République, Paris 75011, France"
+      }}
+    }}
+
+    CORRECT Austrian coffee shop address:
+    {{
+      "service_provider": {{
+        "name": "Café Central",
+        "address": "Herrengasse 14, Wien 1010, Austria"
+      }}
+    }}
+
+    CORRECT Dutch retail store address:
+    {{
+      "service_provider": {{
+        "name": "Albert Heijn",
+        "address": "Kalverstraat 152, Amsterdam 1012 XE, Netherlands"
+      }}
+    }}
+
+    CORRECT Spanish restaurant address:
+    {{
+      "service_provider": {{
+        "name": "La Paella Real",
+        "address": "Calle Mayor 84, Madrid 28013, Spain"
+      }}
+    }}
+
+    CORRECT Italian pizzeria address:
+    {{
+      "service_provider": {{
+        "name": "Pizzeria Napoli",
+        "address": "Piazza San Marco 123, Venezia 30124, Italy"
+      }}
+    }}
+
+    NEGATIVE SERVICE PROVIDER ADDRESS EXAMPLES (INCORRECT formats to AVOID):
+
+    WRONG - Too short/incomplete service provider:
+    {{
+      "service_provider": {{
+        "name": "Store Name",
+        "address": "Budapest"  // WRONG! Missing street and postal code
+      }}
+    }}
+
+    WRONG - Missing country:
+    {{
+      "service_provider": {{
+        "name": "Restaurant",
+        "address": "Main Street 123, Berlin 10117"  // WRONG! Missing country
+      }}
+    }}
+
+    WRONG - String format (should be object):
+    {{
+      "service_provider": "Just Store Name"  // WRONG! Must be object with name and address
+    }}
+
+    WRONG - Missing commas:
+    {{
+      "service_provider": {{
+        "name": "Shop Name",
+        "address": "High Street 45 London SW1A 1AA United Kingdom"  // WRONG! No commas
+      }}
+    }}
+
+    WRONG - Placeholder text:
+    {{
+      "service_provider": {{
+        "name": "Store",
+        "address": "Address unknown"  // WRONG! Extract actual address from receipt
+      }}
+    }}
+
+    WRONG - Only store name and city:
+    {{
+      "service_provider": {{
+        "name": "McDonald's",
+        "address": "Paris, France"  // WRONG! Missing street address and postal code
+      }}
+    }}
+
+    WRONG - Incomplete shopping center address:
+    {{
+      "service_provider": {{
+        "name": "H&M",
+        "address": "Shopping Mall, Vienna"  // WRONG! Need complete street address
+      }}
+    }}
+
+    WRONG - No street number:
+    {{
+      "service_provider": {{
+        "name": "Starbucks",
+        "address": "Oxford Street, London W1D 1BS, United Kingdom"  // WRONG! Missing street number
+      }}
+    }}
+
+    WRONG - Abbreviated country:
+    {{
+      "service_provider": {{
+        "name": "Target",
+        "address": "123 Broadway, New York, NY 10001, US"  // WRONG! Use full country name "United States"
+      }}
     }}
