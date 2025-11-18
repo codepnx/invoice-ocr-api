@@ -94,6 +94,20 @@
     return JSON.stringify(obj, null, 2);
   }
 
+  function formatValue(value) {
+    if (value === null || value === undefined) {
+      return 'N/A';
+    }
+    if (typeof value === 'object') {
+      if (Array.isArray(value)) {
+        return JSON.stringify(value, null, 2);
+      } else {
+        return JSON.stringify(value, null, 2);
+      }
+    }
+    return String(value);
+  }
+
   function clearForm() {
     file = null;
     buyer = '';
@@ -192,10 +206,38 @@
             {#each Object.entries(result.data) as [key, value]}
               <div class="result-item">
                 <span class="result-key">{key}:</span>
-                <span class="result-value">{value !== null ? value : 'N/A'}</span>
+                <div class="result-value">
+                  {#if typeof value === 'object' && value !== null}
+                    <pre class="json-value">{formatValue(value)}</pre>
+                  {:else}
+                    {formatValue(value)}
+                  {/if}
+                </div>
               </div>
             {/each}
           </div>
+
+          {#if result.validation_errors && result.validation_errors.length > 0}
+            <div class="validation-section">
+              <h3 class="validation-title error">Validation Errors</h3>
+              <ul class="validation-list error">
+                {#each result.validation_errors as error}
+                  <li>{error}</li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
+
+          {#if result.validation_warnings && result.validation_warnings.length > 0}
+            <div class="validation-section">
+              <h3 class="validation-title warning">Validation Warnings</h3>
+              <ul class="validation-list warning">
+                {#each result.validation_warnings as warning}
+                  <li>{warning}</li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
 
           <details class="raw-json">
             <summary>View Raw JSON</summary>
@@ -399,6 +441,17 @@
     color: #1f2937;
   }
 
+  .json-value {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    margin: 0;
+    color: #334155;
+    overflow-x: auto;
+  }
+
   .raw-json {
     margin-top: 1rem;
   }
@@ -424,6 +477,53 @@
     background: #fef3c7;
     border-radius: 4px;
     color: #92400e;
+  }
+
+  .validation-section {
+    margin: 1rem 0;
+    padding: 1rem;
+    border-radius: 6px;
+  }
+
+  .validation-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .validation-title.error {
+    color: #dc2626;
+  }
+
+  .validation-title.warning {
+    color: #d97706;
+  }
+
+  .validation-list {
+    margin: 0;
+    padding-left: 1.5rem;
+  }
+
+  .validation-list.error {
+    color: #dc2626;
+    background: #fef2f2;
+    border-left: 3px solid #dc2626;
+    padding: 0.75rem 0.75rem 0.75rem 1.5rem;
+    margin: 0;
+    border-radius: 0 4px 4px 0;
+  }
+
+  .validation-list.warning {
+    color: #d97706;
+    background: #fffbeb;
+    border-left: 3px solid #d97706;
+    padding: 0.75rem 0.75rem 0.75rem 1.5rem;
+    margin: 0;
+    border-radius: 0 4px 4px 0;
+  }
+
+  .validation-list li {
+    margin-bottom: 0.25rem;
   }
 
   @media (max-width: 640px) {
