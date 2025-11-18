@@ -23,7 +23,7 @@ default_invoice:
     - amount: The total amount paid (numeric value only)
     - currency: The currency code (e.g., USD, EUR, GBP)
     - description: Brief description of services/products
-    - payment_method: Method of payment - must be one of: "creditcard", "banktransfer", "cash", "other", or "N/A" if not mentioned or cannot be determined
+    - payment_method: Method of payment - must be one of: "creditcard", "banktransfer", "cash", "other", or "N/A" if not mentioned or cannot be determined. For Slovenian documents: "kartice", "kreditna kartica" = creditcard; "virman" = banktransfer
     - paymentBankAccountNumber: (ONLY if payment_method is "banktransfer") The bank account number where payment should be sent
     - paymentReference: (ONLY if payment_method is "banktransfer") The payment reference or note to include with the bank transfer
 
@@ -281,7 +281,7 @@ detailed_invoice:
 
     IMPORTANT: Each line item should have its tax_rate if specified on the invoice. Some invoices have different tax rates for different items (e.g., 20% for services, 0% for exports).
     - currency: The currency code (e.g., USD, EUR, GBP)
-    - payment_method: Method of payment - must be one of: "creditcard", "banktransfer", "cash", "other", or "N/A" if not mentioned or cannot be determined
+    - payment_method: Method of payment - must be one of: "creditcard", "banktransfer", "cash", "other", or "N/A" if not mentioned or cannot be determined. For Slovenian documents: "kartice", "kreditna kartica" = creditcard; "virman" = banktransfer
     - paymentBankAccountNumber: (ONLY if payment_method is "banktransfer") The bank account number where payment should be sent
     - paymentReference: (ONLY if payment_method is "banktransfer") The payment reference or note to include with the bank transfer
     - notes: Any additional notes or terms
@@ -539,7 +539,7 @@ simple_receipt:
     - amount: Total amount
     - currency: Currency code
     - items: Brief description of purchased items
-    - payment_method: Method of payment - must be one of: "creditcard", "banktransfer", "cash", "other", or "N/A" if not mentioned or cannot be determined
+    - payment_method: Method of payment - must be one of: "creditcard", "banktransfer", "cash", "other", or "N/A" if not mentioned or cannot be determined. For Slovenian documents: "kartice", "kreditna kartica" = creditcard; "virman" = banktransfer
     - paymentBankAccountNumber: (ONLY if payment_method is "banktransfer") The bank account number where payment should be sent
     - paymentReference: (ONLY if payment_method is "banktransfer") The payment reference or note to include with the bank transfer
 
