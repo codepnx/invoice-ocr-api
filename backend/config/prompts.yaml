@@ -742,3 +742,59 @@ simple_receipt:
         "address": "123 Broadway, New York, NY 10001, US"  // WRONG! Use full country name "United States"
       }}
     }}
+
+debug_text_extraction:
+  name: "Debug Text Extraction"
+  description: "Extract and interpret all text for debugging purposes"
+  system_prompt: |
+    You are a text analysis expert that extracts all readable text from documents and provides interpretations.
+    Your goal is to help debug OCR and text processing issues by providing detailed text analysis.
+
+  user_prompt: |
+    Extract ALL readable text from this document and provide detailed analysis for debugging purposes.
+
+    Return a JSON object with the following structure:
+    {{
+      "extracted_text": "All readable text from the document, preserving line breaks and formatting as much as possible",
+      "text_sections": [
+        {{
+          "section_type": "header|footer|body|table|address|date|number|etc",
+          "content": "The actual text content",
+          "interpretation": "What this text likely represents (e.g., 'invoice number', 'company address', 'date', 'amount', etc.)",
+          "confidence": "high|medium|low - how confident you are in the interpretation"
+        }}
+      ],
+      "identified_patterns": {{
+        "dates_found": ["list of all date-like text found"],
+        "numbers_found": ["list of all numeric values found"],
+        "addresses_found": ["list of all address-like text found"],
+        "company_names_found": ["list of potential company/business names"],
+        "slovenian_terms": ["list of any Slovenian words/phrases detected"],
+        "payment_terms": ["list of any payment-related terms found"]
+      }},
+      "potential_issues": [
+        "List any text that appears unclear, partially obscured, or difficult to read",
+        "Note any formatting issues that might affect processing"
+      ]
+    }}
+
+    Be extremely thorough in text extraction. Include:
+    - Headers and footers
+    - Watermarks if visible
+    - Table headers and data
+    - Fine print and small text
+    - Any partially visible or unclear text (mark as such)
+    - Numbers, dates, addresses, names
+    - Special characters and symbols
+
+    For interpretations, consider:
+    - Context and positioning of text
+    - Common invoice/receipt patterns
+    - Slovenian business terminology
+    - Date formats (DD.MM.YYYY, DD/MM/YYYY, etc.)
+    - Currency and amount patterns
+    - Address formatting patterns
+
+    {buyer_context}
+
+    Return ONLY the JSON object, no additional text.
