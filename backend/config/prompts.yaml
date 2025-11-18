@@ -16,8 +16,8 @@ default_invoice:
     Required fields:
     - invoice_number: The invoice or receipt number
     - invoice_date: The date of the invoice/receipt (format: YYYY-MM-DD)
-    - payment_date: The date payment was made (format: YYYY-MM-DD), if available
-    - service_date: The date when services were performed (format: YYYY-MM-DD), if available. Look for keywords like "service date", "performed on", "delivery date", or Slovenian "storitev"/"storitve" which means service
+    - payment_date: The date payment was made (format: YYYY-MM-DD), if available. CRITICAL: Look carefully for payment dates in the document
+    - service_date: The date when services were performed (format: YYYY-MM-DD), if available. Look for keywords like "service date", "performed on", "delivery date", or Slovenian "odprema blaga", "odp. blaga", "opravljena storitev", "opravljene storitve", "opr. storitve", "storitev", "storitve"
     - service_provider: Object with name and complete address. For address, ALWAYS include ALL components: street number + street name, city, postal code, and country in single string format like "Sarló u 7, Székesfehérvár 8000, Hungary". NEVER use incomplete addresses like just "Budapest" or "Berlin".
     - buyer: The name of the buyer/customer (if not specified, try to identify from the document)
     - amount: The total amount paid (numeric value only)
@@ -268,9 +268,9 @@ detailed_invoice:
     Required fields:
     - invoice_number: The invoice or receipt number
     - invoice_date: The date of the invoice/receipt (format: YYYY-MM-DD)
-    - due_date: The payment due date (format: YYYY-MM-DD), if available
-    - payment_date: The date payment was made (format: YYYY-MM-DD), if available
-    - service_date: The date when services were performed (format: YYYY-MM-DD), if available. Look for keywords like "service date", "performed on", "delivery date", or Slovenian "storitev"/"storitve" which means service
+    - due_date: The payment due date (format: YYYY-MM-DD), if available. CRITICAL: Look for due dates - in Slovenian "datum valute" means due date
+    - payment_date: The date payment was made (format: YYYY-MM-DD), if available. CRITICAL: Look carefully for payment dates in the document
+    - service_date: The date when services were performed (format: YYYY-MM-DD), if available. Look for keywords like "service date", "performed on", "delivery date", or Slovenian "odprema blaga", "odp. blaga", "opravljena storitev", "opravljene storitve", "opr. storitve", "storitev", "storitve"
     - service_provider: Object with name, address (ALWAYS include street number + street name, city, postal code, and country in single string format like "Sarló u 7, Székesfehérvár 8000, Hungary"), tax_id, contact details
     - buyer: Object with name, address, contact details (if not specified in context, extract from document)
     - line_items: Array of items/services with description, quantity, unit_price (net price per unit WITHOUT VAT/TAX), total (net total for this line WITHOUT VAT/TAX), tax_rate (tax rate percentage for this line item, if specified on the invoice)
@@ -534,7 +534,7 @@ simple_receipt:
 
     - receipt_number: Receipt number or transaction ID
     - date: Date of purchase (format: YYYY-MM-DD)
-    - service_date: The date when services were performed (format: YYYY-MM-DD), if available. Look for keywords like "service date", "performed on", "delivery date", or Slovenian "storitev"/"storitve" which means service
+    - service_date: The date when services were performed (format: YYYY-MM-DD), if available. Look for keywords like "service date", "performed on", "delivery date", or Slovenian "odprema blaga", "odp. blaga", "opravljena storitev", "opravljene storitve", "opr. storitve", "storitev", "storitve"
     - service_provider: Object with name and complete address. For address, ALWAYS include ALL components: street number + street name, city, postal code, and country in single string format like "Sarló u 7, Székesfehérvár 8000, Hungary". NEVER use incomplete addresses like just "Budapest" or store name only.
     - amount: Total amount
     - currency: Currency code
