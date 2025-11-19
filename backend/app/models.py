@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 class ProcessRequest(BaseModel):
     """Request model for processing images/PDFs"""
     buyer: Optional[str] = Field(None, description="Name of the buyer/customer (optional)")
-    template: str = Field("default_invoice", description="Prompt template to use")
+    template: str = Field("detailed_invoice", description="Prompt template to use")
 
 
 class ProcessResponse(BaseModel):

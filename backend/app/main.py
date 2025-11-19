@@ -183,7 +183,7 @@ async def validate_data_endpoint(data: Dict[str, Any]):
 async def reprocess_document(
     file: UploadFile = File(..., description="Image or PDF file to reprocess"),
     buyer: Optional[str] = Form(None, description="Name of the buyer (optional)"),
-    template: str = Form("default_invoice", description="Prompt template to use"),
+    template: str = Form("detailed_invoice", description="Prompt template to use"),
     force_retry: bool = Form(False, description="Force reprocessing even if initial processing succeeds"),
     session: AsyncSession = Depends(get_session)
 ):
@@ -244,6 +244,7 @@ async def reprocess_document(
         else:
             buyer_context = ""
 
+        user_prompt = user_prompt.replace("{{buyer_context}}", "{buyer_context}")
         user_prompt = user_prompt.format(buyer_context=buyer_context)
 
         # Process based on file type
@@ -355,7 +356,7 @@ async def reprocess_document(
 async def process_document(
     file: UploadFile = File(..., description="Image or PDF file to process"),
     buyer: Optional[str] = Form(None, description="Name of the buyer (optional)"),
-    template: str = Form("default_invoice", description="Prompt template to use"),
+    template: str = Form("detailed_invoice", description="Prompt template to use"),
     session: AsyncSession = Depends(get_session)
 ):
     """
@@ -364,7 +365,7 @@ async def process_document(
     Args:
         file: The uploaded file (image or PDF)
         buyer: Optional buyer name to help identify the service provider
-        template: Name of the prompt template to use (default: default_invoice)
+        template: Name of the prompt template to use (default: detailed_invoice)
 
     Returns:
         ProcessResponse with extracted data in JSON format
@@ -411,6 +412,7 @@ async def process_document(
         else:
             buyer_context = ""
 
+        user_prompt = user_prompt.replace("{{buyer_context}}", "{buyer_context}")
         user_prompt = user_prompt.format(buyer_context=buyer_context)
 
         # Process based on file type

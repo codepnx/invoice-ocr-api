@@ -5,46 +5,155 @@ detailed_invoice:
   description: "Extract all fields from invoices, receipts, and business documents with advanced validation"
   system_prompt: |
     You are an expert at analyzing invoices, receipts, and business documents with exceptional attention to detail.
-    Extract all information accurately and return valid JSON only.
-    If a field is not found, use null as the value.
-    Handle both simple receipts and complex invoices with line items.
+    Your ONLY task is to extract structured data as valid JSON.
+
+    CRITICAL JSON FORMATTING REQUIREMENTS:
+    - Your response must be EXACTLY a JSON object starting with a single opening brace and ending with a single closing brace
+    - EVERY property name must be enclosed in double quotes: "property_name"
+    - EVERY string value must be enclosed in double quotes: "string_value"
+    - Use null (no quotes) for missing values, not "null" or "N/A"
+    - Use [] (empty array) for empty line_items, not null
+    - NO single quotes - only double quotes for strings
+    - NO trailing commas anywhere in the JSON
+    - NO comments or explanations - pure JSON only
+    - Your very first character must be a single opening brace and your very last character must be a single closing brace
+    - Test the JSON syntax mentally - it must pass JSON.parse()
 
   user_prompt: |
-    Analyze this invoice/receipt/business document image and extract comprehensive information:
+    Analyze this invoice/receipt/business document image and extract comprehensive information.
 
-    CRITICAL: ALL addresses MUST be complete with street, city, postal code, and country. Never return incomplete addresses like just "Budapest" or "Berlin".
+    CRITICAL GENERAL RULES:
+    - FIRST, internally identify every date-like string and its surrounding text on the document.
+    - THEN, map those dates to the fields below. NEVER leave a date field null if a clear candidate exists.
+    - Use null for a date ONLY if there is no relevant date-like text or it is completely illegible.
+    - Normalize all dates you output to ISO format YYYY-MM-DD, regardless of the original format.
+    - If multiple candidates exist for a field, choose the best match based on nearby labels and context.
+
+    CRITICAL DATE FORMAT DISAMBIGUATION:
+    - For ambiguous formats like "01/02/2024" or "03/05/2024", use these context clues:
+      • Company location: European companies (Hungary, Germany, Austria, etc.) likely use DD/MM/YYYY
+      • US companies likely use MM/DD/YYYY
+      • Language context: Slovenian, German, Hungarian text suggests DD/MM/YYYY
+      • Logical validation: If interpreted as MM/DD results in invalid date (month >12), use DD/MM
+      • Document type patterns: European invoices typically use DD/MM, US invoices use MM/DD
+    - ALWAYS validate: If day >12, the format MUST be MM/DD/YYYY
+    - ALWAYS validate: If month >12, the format MUST be DD/MM/YYYY
+    - Supported input formats: DD.MM.YYYY, DD/MM/YYYY, DD-MM-YYYY, MM/DD/YYYY, YYYY-MM-DD, YYYY.MM.DD, and localized variants with month names
+    - When uncertain, prefer the format that matches the company's likely geographic origin
+
+    CRITICAL ADDRESS RULES:
+    - ALL addresses MUST be complete with: street + number, city, postal code, and country.
+    - NEVER output addresses like just "Budapest" or "Berlin".
+    - Use a single string format with commas, e.g. "Sarló u 7, Székesfehérvár 8000, Hungary".
+    - Always use full country names (e.g. "United States", not "US").
+    - EXCLUDE personal names from addresses: Remove names like "Mr. John Smith", "Att: Mary Johnson", "c/o Peter Brown" or similar personal contact names that appear in address blocks.
 
     REQUIRED CORE FIELDS:
-    - invoice_number: The invoice, receipt number, or transaction ID
+    - invoice_number: The invoice/receipt number or transaction ID
     - invoice_date: The date of the invoice/receipt (format: YYYY-MM-DD)
-    - due_date: The payment due date (format: YYYY-MM-DD), if available. CRITICAL: Look for due dates - in Slovenian "datum valute" means due date
-    - payment_date: The date payment was made (format: YYYY-MM-DD), if available. CRITICAL: Look carefully for payment dates in the document
-    - service_date: The date when services were performed (format: YYYY-MM-DD), if available. Look for keywords like "service date", "performed on", "delivery date", or Slovenian "odprema blaga", "odp. blaga", "opravljena storitev", "opravljene storitve", "opr. storitve", "storitev", "storitve"
-    - service_provider: Object with name, complete address, tax_id (if available), and contact details (if available). For address, ALWAYS include ALL components: street number + street name, city, postal code, and country in single string format like "Sarló u 7, Székesfehérvár 8000, Hungary". NEVER use incomplete addresses.
-    - buyer: Object with name, address (if available), and contact details (if available). If not specified in context, extract from document
-    - amount: The total amount paid (numeric value only)
-    - currency: The currency code (e.g., USD, EUR, GBP)
-    - description: Brief description of services/products OR items field for receipts
-    - payment_method: Method of payment - must be one of: "creditcard", "banktransfer", "cash", "other", or "N/A" if not mentioned or cannot be determined. For Slovenian documents: "kartice", "kreditna kartica" = creditcard; "virman" = banktransfer
-    - paymentBankAccountNumber: (ONLY if payment_method is "banktransfer") The bank account number where payment should be sent
-    - paymentReference: (ONLY if payment_method is "banktransfer") The payment reference or note to include with the bank transfer
-
-    OPTIONAL DETAILED FIELDS (for complex invoices):
-    - line_items: Array of items/services with description, quantity, unit_price (net price per unit WITHOUT VAT/TAX), total (net total for this line WITHOUT VAT/TAX), tax_rate (tax rate percentage for this line item, if specified on the invoice)
+    - due_date: The payment due date (format: YYYY-MM-DD), if available
+        • Look explicitly for labels like "due date", "payment due", "datum valute" (Slovenian).
+    - payment_date: The date payment was made (format: YYYY-MM-DD), if available
+        • Look explicitly for "payment date", "date paid", "transaction date", bank statement dates, etc.
+    - service_date: The date when services were performed (format: YYYY-MM-DD), if available
+        • Look for labels like "service date", "performed on", "delivery date"
+        • Slovenian hints: "odprema blaga", "odp. blaga", "opravljena storitev", "opravljene storitve", "opr. storitve", "storitev", "storitve"
+    - service_provider: Object with:
+        • name
+        • address (complete, as a single string with street + number, city, postal code, country)
+        • tax_id (if available)
+        • contact details (if available: email, phone, website)
+    - buyer: Object with:
+        • name
+        • address (complete if available)
+        • contact details (if available)
+        If not explicitly labeled, infer the buyer from the document context.
+    - amount: The total amount paid (numeric value only, no currency symbol)
+    - currency: Currency code (e.g. "USD", "EUR", "GBP")
+    - description: Brief description of services/products OR a summary of line items for receipts
+    - payment_method: One of: "creditcard", "banktransfer", "cash", "other", "N/A"
+        • Slovenian hints: "kartice", "kreditna kartica" = "creditcard"; "virman" = "banktransfer"
+    - paymentBankAccountNumber: (ONLY if payment_method is "banktransfer") Bank account/IBAN where payment should be sent
+    - paymentReference: (ONLY if payment_method is "banktransfer") Payment reference or communication line to include with the bank transfer
+    - line_items: Array of items/services, each object with:
+        • description
+        • quantity
+        • unit_price (net price per unit WITHOUT VAT/TAX)
+        • total (net total for this line WITHOUT VAT/TAX)
+        • tax_rate (percentage for this line item, if specified)
     - subtotal: Subtotal amount before taxes (sum of all line item totals)
-    - tax_amount: Tax amount
+    - tax_amount: Total tax amount
     - tax_rate: Overall tax rate percentage (if uniform across all items)
     - total_amount: Final total amount including taxes
 
     {buyer_context}
 
-    Return ONLY a valid JSON object with these fields. Do not include any other text or markdown formatting.
+    OUTPUT FORMAT:
+    - Return ONLY a valid JSON object with exactly these top-level keys:
+      [
+        "invoice_number",
+        "invoice_date",
+        "due_date",
+        "payment_date",
+        "service_date",
+        "service_provider",
+        "buyer",
+        "amount",
+        "currency",
+        "description",
+        "payment_method",
+        "paymentBankAccountNumber",
+        "paymentReference",
+        "line_items",
+        "subtotal",
+        "tax_amount",
+        "tax_rate",
+        "total_amount"
+      ]
+    - For any field that does not apply or is not found, use null.
+    - For "line_items", use an empty array [] if there are no line items.
 
-    IMPORTANT RULES for payment_method "banktransfer":
-    1. paymentBankAccountNumber: Extract the account number and REMOVE all spaces, dashes, and special characters. Keep only letters and numbers.
-    2. paymentReference: Extract the exact reference text that should be used in the bank transfer. Look for labels like "Payment Communication:", "Reference:", "Payment Reference:", "Structured Communication:", etc.
+    EXACT OUTPUT FORMAT EXAMPLE:
+    {{
+      "invoice_number": "INV-2024-001",
+      "invoice_date": "2024-01-15",
+      "due_date": null,
+      "payment_date": null,
+      "service_date": "2024-01-10",
+      "service_provider": {{
+        "name": "Company Name",
+        "address": "Street 123, City 12345, Country",
+        "tax_id": "TAX123456",
+        "contact": null
+      }},
+      "buyer": null,
+      "amount": 1500.00,
+      "currency": "EUR",
+      "description": "Services provided",
+      "payment_method": "banktransfer",
+      "paymentBankAccountNumber": "DE89370400440532013000",
+      "paymentReference": "INV-2024-001",
+      "line_items": [],
+      "subtotal": null,
+      "tax_amount": null,
+      "tax_rate": null,
+      "total_amount": null
+    }}
 
-    POSITIVE PAYMENT EXAMPLES (correct extraction):
+    CRITICAL: Your response must be identical in structure to the example above - valid JSON with proper double quotes, no trailing commas, and exact field names.
+
+    IMPORTANT RULES FOR payment_method "banktransfer":
+    1. paymentBankAccountNumber:
+       - Extract the account / IBAN number.
+       - Remove all spaces, dashes, and special characters.
+       - Keep only letters and numbers.
+       - Do NOT include bank name or other text.
+    2. paymentReference:
+       - Extract the exact reference text that should be used in the bank transfer.
+       - Look for labels like "Payment Communication:", "Communication:", "Reference:", "Payment Reference:", "Structured Communication:", "Sklic", "Reference number".
+       - Do NOT include the label itself, only the value.
+
+    POSITIVE PAYMENT EXAMPLES:
 
     Example 1 - Basic bank transfer:
     Input text: "Payment Communication: INV/2025/01579 on this account: BE07 9050 4713 8266 - Wise EUR"
@@ -82,225 +191,83 @@ detailed_invoice:
       "paymentReference": "+++123/4567/89012+++"
     }}
 
-    NEGATIVE PAYMENT EXAMPLES (what NOT to do):
+    DATE FORMAT DISAMBIGUATION EXAMPLES:
 
-    WRONG - Don't keep spaces in account numbers:
-    {{
-      "paymentBankAccountNumber": "BE07 9050 4713 8266"  // WRONG! Remove spaces
-    }}
+    Example 1 - Clear validation:
+    "15/03/2024" → Day >12, so MUST be DD/MM/YYYY → "2024-03-15"
 
-    WRONG - Don't use invoice number as payment reference unless explicitly stated:
-    {{
-      "invoice_number": "INV-2024-001",
-      "paymentReference": "INV-2024-001"  // WRONG if document says "Use payment ref: ORDER-123"
-    }}
+    Example 2 - Invalid month validation:
+    "05/13/2024" → Month >12, so MUST be MM/DD/YYYY → "2024-05-13"
 
-    WRONG - Don't extract bank name as part of account number:
-    {{
-      "paymentBankAccountNumber": "BE07905047138266-Wise"  // WRONG! Remove bank name
-    }}
+    Example 3 - Geographic context:
+    Document from "Budapest, Hungary" showing "08/03/2024"
+    → European company likely uses DD/MM → "2024-03-08"
 
-    WRONG - Don't include labels in the reference:
-    {{
-      "paymentReference": "Payment Communication: INV/2025/01579"  // WRONG! Remove label
-    }}
+    Example 4 - Geographic context:
+    Document from "New York, USA" showing "08/03/2024"
+    → US company likely uses MM/DD → "2024-08-03"
 
-    COMPREHENSIVE DOCUMENT EXAMPLES:
+    Example 5 - Language context:
+    Document with Slovenian text "datum valute: 12/05/2024"
+    → Slovenian suggests European format DD/MM → "2024-05-12"
 
-    Standard invoice example format:
-    {{
-      "invoice_number": "INV-2024-001",
-      "invoice_date": "2024-01-15",
-      "due_date": "2024-02-15",
-      "payment_date": "2024-01-20",
-      "service_date": "2024-01-10",
-      "service_provider": {{
-        "name": "ABC Services Inc.",
-        "address": "123 Business Street, New York, NY 10001, United States",
-        "tax_id": "12-3456789"
-      }},
-      "buyer": {{
-        "name": "XYZ Company",
-        "address": "456 Commerce Ave, Boston, MA 02101, United States"
-      }},
-      "amount": 1500.00,
-      "currency": "USD",
-      "description": "Consulting services",
-      "payment_method": "banktransfer",
-      "paymentBankAccountNumber": "DE89370400440532013000",
-      "paymentReference": "INV-2024-001"
-    }}
+    POSITIVE ADDRESS EXAMPLES:
 
-    Standard receipt example format:
-    {{
-      "invoice_number": "REP-2024-001",
-      "invoice_date": "2024-01-15",
-      "service_date": "2024-01-15",
-      "service_provider": {{
-        "name": "Tech Repair Shop",
-        "address": "Váci út 178, Budapest 1138, Hungary"
-      }},
-      "amount": 250.00,
-      "currency": "EUR",
-      "description": "Laptop screen repair and cleaning",
-      "payment_method": "creditcard"
-    }}
-
-    Complex invoice with line items example:
-    {{
-      "invoice_number": "INV-2025-001",
-      "invoice_date": "2025-01-15",
-      "service_provider": {{
-        "name": "ABC Consulting Ltd",
-        "address": "123 Business Street, New York, NY 10001, United States",
-        "tax_id": "12-3456789"
-      }},
-      "buyer": {{
-        "name": "XYZ Corporation",
-        "address": "456 Commerce Ave, Boston, MA 02101, United States"
-      }},
-      "line_items": [
-        {{
-          "description": "Consulting services - January",
-          "quantity": 40,
-          "unit_price": 100.00,
-          "total": 4000.00,
-          "tax_rate": 20.0
-        }},
-        {{
-          "description": "Software license",
-          "quantity": 1,
-          "unit_price": 500.00,
-          "total": 500.00,
-          "tax_rate": 20.0
-        }}
-      ],
-      "subtotal": 4500.00,
-      "tax_rate": 20.0,
-      "tax_amount": 900.00,
-      "total_amount": 5400.00,
-      "currency": "USD",
-      "payment_method": "banktransfer"
-    }}
-
-    POSITIVE ADDRESS EXAMPLES (CORRECT formats to follow):
-
-    CORRECT Hungarian business address:
     {{
       "service_provider": {{
-        "name": "Magyar Solutions Kft",
-        "address": "Sarló u 7, Székesfehérvár 8000, Hungary"
+        "name": "Example Company Ltd",
+        "address": "Main Street 123, Example City 12345, Country"
       }}
     }}
 
-    CORRECT German business address:
     {{
       "service_provider": {{
-        "name": "Berlin Tech GmbH",
-        "address": "Unter den Linden 42, Berlin 10117, Germany"
+        "name": "Sample Business Inc",
+        "address": "Business Avenue 456, Sample Town 67890, Country"
       }}
     }}
 
-    CORRECT US business address:
+    CORRECT address extraction (removing personal names):
+    Document shows:
+    "ABC Company Ltd
+    Att: Mr. John Smith
+    123 Business Street
+    New York, NY 10001
+    United States"
+
+    Extract as:
     {{
       "service_provider": {{
-        "name": "NYC Services Inc",
+        "name": "ABC Company Ltd",
         "address": "123 Business Street, New York, NY 10001, United States"
       }}
     }}
 
-    CORRECT UK business address:
-    {{
-      "service_provider": {{
-        "name": "London Consulting Ltd",
-        "address": "10 Downing Street, London SW1A 2AA, United Kingdom"
-      }}
-    }}
+    NEGATIVE ADDRESS EXAMPLES (avoid these):
 
-    CORRECT French business address:
-    {{
-      "service_provider": {{
-        "name": "Paris Solutions SARL",
-        "address": "15 Rue de Rivoli, Paris 75001, France"
-      }}
-    }}
-
-    CORRECT Austrian business address:
-    {{
-      "service_provider": {{
-        "name": "Vienna Services GmbH",
-        "address": "Ringstraße 1, Wien 1010, Austria"
-      }}
-    }}
-
-    CORRECT Dutch business address:
-    {{
-      "service_provider": {{
-        "name": "Amsterdam Tech BV",
-        "address": "Prinsengracht 263, Amsterdam 1016 GV, Netherlands"
-      }}
-    }}
-
-    CORRECT Spanish business address:
-    {{
-      "service_provider": {{
-        "name": "Madrid Consulting SL",
-        "address": "Gran Vía 28, Madrid 28013, Spain"
-      }}
-    }}
-
-    CORRECT Italian business address:
-    {{
-      "service_provider": {{
-        "name": "Roma Services SRL",
-        "address": "Via del Corso 45, Roma 00187, Italy"
-      }}
-    }}
-
-    NEGATIVE ADDRESS EXAMPLES (INCORRECT formats to AVOID):
-
-    WRONG - Too short/incomplete address:
     {{
       "service_provider": {{
         "name": "Company Name",
-        "address": "Budapest"  // WRONG! Missing street and postal code
+        "address": "Budapest"
       }}
     }}
 
-    WRONG - Missing country:
     {{
       "service_provider": {{
         "name": "Business Name",
-        "address": "Main Street 123, Berlin 10117"  // WRONG! Missing country
+        "address": "Main Street 123, Berlin 10117"
       }}
     }}
 
-    WRONG - Missing postal code:
     {{
-      "service_provider": {{
-        "name": "Store Name",
-        "address": "Ringstraße 1, Wien, Austria"  // WRONG! Missing postal code
-      }}
+      "service_provider": "Just Company Name"
     }}
 
-    WRONG - Missing commas:
+    WRONG - Including personal names in address:
     {{
       "service_provider": {{
-        "name": "Shop Name",
-        "address": "Main Street 123 Berlin 10117 Germany"  // WRONG! No commas
-      }}
-    }}
-
-    WRONG - String format (should be object):
-    {{
-      "service_provider": "Just Company Name"  // WRONG! Must be object
-    }}
-
-    WRONG - Abbreviated country:
-    {{
-      "service_provider": {{
-        "name": "Target",
-        "address": "123 Broadway, New York, NY 10001, US"  // WRONG! Use full country name "United States"
+        "name": "ABC Company Ltd",
+        "address": "Att: Mr. John Smith, 123 Business Street, New York, NY 10001, United States"
       }}
     }}
 
